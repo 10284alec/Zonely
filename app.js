@@ -133,11 +133,7 @@ async function loadLists() {
 
   if (placelists.length > 0) {
     await selectList(placelists[0].id);
-    // show map immediately
-    MAP_TAB_ELEMENTS.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.style.visibility = 'visible';
-    });
+    showMapElements(true);
   } else {
     // show my maps screen with empty state
     document.getElementById('screen-mymaps').classList.remove('hidden');
@@ -390,61 +386,70 @@ async function deleteCurrentPin() {
   await loadPins(activeListId);
 }
 
-// ── MAIN SEARCH BAR ──
+// ── MAIN SEARCH BAR (Google Places JS API) ──
+let autocompleteService = null;
+let placesService = null;
+
+function initPlacesServices() {
+  if (window.google && window.google.maps && window.google.maps.places) {
+    autocompleteService = new google.maps.places.AutocompleteService();
+    const dummy = document.createElement('div');
+    placesService = new google.maps.places.PlacesService(dummy);
+  }
+}
+
 function mainSearch(query) {
   clearTimeout(searchTimeout);
   const results = document.getElementById('search-bar-results');
   if (!query || query.length < 2) { results.classList.add('hidden'); return; }
 
-  searchTimeout = setTimeout(async () => {
+  searchTimeout = setTimeout(function() {
     if (!activeListId) {
-      results.innerHTML = `<div class="sb-result"><div class="sb-result-name" style="color:#666">Select a placelist first</div></div>`;
+      results.innerHTML = '<div class="sb-result" style="padding:12px 14px"><div style="font-size:14px;color:#888">Open a placelist first, then search to add a pin</div></div>';
       results.classList.remove('hidden'); return;
     }
-    try {
-      const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(query)}&key=${MAPS_KEY}&language=en`;
-      const res = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`);
-      const data = await res.json();
-      if (!data.predictions?.length) { results.classList.add('hidden'); return; }
-      results.innerHTML = data.predictions.slice(0, 6).map(p => `
-        <div class="sb-result" onclick="mainSearchSelect('${p.place_id}', '${escHtml(p.description).replace(/'/g,"\\'")}')">
-          <div class="sb-result-icon">📍</div>
-          <div>
-            <div class="sb-result-name">${escHtml(p.structured_formatting?.main_text || p.description)}</div>
-            <div class="sb-result-addr">${escHtml(p.structured_formatting?.secondary_text || '')}</div>
-          </div>
-        </div>
-      `).join('');
+    if (!autocompleteService) initPlacesServices();
+    if (!autocompleteService) { showToast('Search loading, try again'); return; }
+
+    autocompleteService.getPlacePredictions({ input: query, language: 'en' }, function(predictions, status) {
+      if (status !== google.maps.places.PlacesServiceStatus.OK || !predictions || !predictions.length) {
+        results.classList.add('hidden'); return;
+      }
+      results.innerHTML = predictions.slice(0, 6).map(function(p) {
+        var main = escHtml((p.structured_formatting && p.structured_formatting.main_text) || p.description);
+        var sec = escHtml((p.structured_formatting && p.structured_formatting.secondary_text) || '');
+        return '<div class="sb-result" onclick="mainSearchSelect(\'' + p.place_id + '\')">' +
+          '<div class="sb-result-icon">📍</div>' +
+          '<div style="min-width:0;flex:1">' +
+          '<div class="sb-result-name">' + main + '</div>' +
+          '<div class="sb-result-addr">' + sec + '</div>' +
+          '</div></div>';
+      }).join('');
       results.classList.remove('hidden');
-    } catch { results.classList.add('hidden'); }
-  }, 350);
+    });
+  }, 300);
 }
 
-async function mainSearchSelect(placeId, description) {
+function mainSearchSelect(placeId) {
   document.getElementById('search-bar-results').classList.add('hidden');
   document.getElementById('main-search-input').value = '';
-  try {
-    const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=name,formatted_address,geometry&key=${MAPS_KEY}`;
-    const res = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`);
-    const data = await res.json();
-    const r = data.result;
-    if (r) {
-      document.getElementById('pin-name-input').value = r.name || '';
-      document.getElementById('pin-addr-input').value = r.formatted_address || '';
-      document.getElementById('pin-lat').value = r.geometry.location.lat;
-      document.getElementById('pin-lng').value = r.geometry.location.lng;
-      map.setView([r.geometry.location.lat, r.geometry.location.lng], 16);
+  if (!placesService) initPlacesServices();
+  if (!placesService) { showToast('Search not ready'); return; }
+
+  placesService.getDetails({ placeId: placeId, fields: ['name','formatted_address','geometry'] }, function(place, status) {
+    if (status === google.maps.places.PlacesServiceStatus.OK && place) {
+      document.getElementById('pin-name-input').value = place.name || '';
+      document.getElementById('pin-addr-input').value = place.formatted_address || '';
+      document.getElementById('pin-lat').value = place.geometry.location.lat();
+      document.getElementById('pin-lng').value = place.geometry.location.lng();
+      map.setView([place.geometry.location.lat(), place.geometry.location.lng()], 16);
     }
-  } catch {
-    const parts = description.split(',');
-    document.getElementById('pin-name-input').value = parts[0]?.trim() || description;
-    document.getElementById('pin-addr-input').value = description;
-  }
-  document.getElementById('pin-editing-id').value = '';
-  document.getElementById('pin-note-input').value = '';
-  document.getElementById('pin-search-input').value = '';
-  setRating(5);
-  openModal('modal-pin');
+    document.getElementById('pin-editing-id').value = '';
+    document.getElementById('pin-note-input').value = '';
+    document.getElementById('pin-search-input').value = '';
+    setRating(5);
+    openModal('modal-pin');
+  });
 }
 
 // ── SEARCH (in-modal) ──
@@ -643,44 +648,37 @@ function lvTapPin(pinId) {
 
 // ── BOTTOM NAV ──
 let activeTab = 'mymaps';
-const MAP_TAB_ELEMENTS = ['map','top-bar','search-bar-wrap','placelist-header','view-controls','list-view-screen','pin-sheet','crosshair'];
+// Elements that belong to the map view — hidden when on other tabs
+const MAP_ELEMENTS = ['map','top-bar','search-bar-wrap','placelist-header','view-controls','list-view-screen','pin-sheet','crosshair'];
+
+function showMapElements(show) {
+  MAP_ELEMENTS.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.style.display = show ? '' : 'none';
+  });
+}
 
 function switchTab(tab) {
   activeTab = tab;
-  // Update nav buttons
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById(`nav-${tab}`)?.classList.add('active');
-
-  // Hide all tab screens
   document.querySelectorAll('.tab-screen').forEach(s => s.classList.add('hidden'));
-
-  // Hide/show map elements
-  const isMap = tab === 'mymaps' && activeListId;
-  MAP_TAB_ELEMENTS.forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.style.visibility = (tab === 'mymaps' && activeListId) ? 'visible' : 'hidden';
-  });
 
   if (tab === 'mymaps') {
     if (activeListId) {
-      // Show map view
-      MAP_TAB_ELEMENTS.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.style.visibility = 'visible';
-      });
+      showMapElements(true);
     } else {
-      // Show my maps list
+      showMapElements(false);
       document.getElementById('screen-mymaps').classList.remove('hidden');
       renderMyMapsScreen();
     }
   } else {
-    MAP_TAB_ELEMENTS.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.style.visibility = 'hidden';
-    });
+    showMapElements(false);
     const screen = document.getElementById(`screen-${tab}`);
     if (screen) screen.classList.remove('hidden');
     if (tab === 'profile') updateProfileScreen();
+    if (tab === 'search') renderSearchScreen();
   }
 }
 
@@ -711,12 +709,8 @@ function renderMyMapsScreen() {
 
 async function openListFromMyMaps(id) {
   await selectList(id);
-  // Switch to map view
-  document.getElementById('screen-mymaps').classList.add('hidden');
-  MAP_TAB_ELEMENTS.forEach(eid => {
-    const el = document.getElementById(eid);
-    if (el) el.style.visibility = 'visible';
-  });
+  document.querySelectorAll('.tab-screen').forEach(s => s.classList.add('hidden'));
+  showMapElements(true);
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('nav-mymaps').classList.add('active');
   activeTab = 'mymaps';
