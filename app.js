@@ -700,13 +700,9 @@ function switchTab(tab) {
   document.querySelectorAll('.tab-screen').forEach(s => s.classList.add('hidden'));
 
   if (tab === 'mymaps') {
-    if (activeListId) {
-      showMapElements(true);
-    } else {
-      showMapElements(false);
-      document.getElementById('screen-mymaps').classList.remove('hidden');
-      renderMyMapsScreen();
-    }
+    showMapElements(false);
+    document.getElementById('screen-mymaps').classList.remove('hidden');
+    renderMyMapsScreen();
   } else {
     showMapElements(false);
     const screen = document.getElementById(`screen-${tab}`);
