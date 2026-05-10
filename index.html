@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Zonely" />
+  <title>Zonely</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ── SPLASH ── -->
+<div id="splash">
+  <div class="splash-logo">Z</div>
+  <div class="splash-name">Zonely</div>
+</div>
+
+<!-- ── AUTH ── -->
+<div id="auth-screen" class="screen hidden">
+  <div class="auth-wrap">
+    <div class="auth-logo">Z</div>
+    <div class="auth-title">Zonely</div>
+    <div class="auth-sub">Your personal place curator</div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="showAuthTab('signin')">Sign in</button>
+      <button class="auth-tab" onclick="showAuthTab('signup')">Sign up</button>
+    </div>
+    <div id="auth-signin">
+      <input class="auth-input" type="email" id="signin-email" placeholder="Email" />
+      <input class="auth-input" type="password" id="signin-password" placeholder="Password" />
+      <button class="auth-btn" onclick="signIn()">Sign in</button>
+    </div>
+    <div id="auth-signup" class="hidden">
+      <input class="auth-input" type="text" id="signup-name" placeholder="Your name" />
+      <input class="auth-input" type="email" id="signup-email" placeholder="Email" />
+      <input class="auth-input" type="password" id="signup-password" placeholder="Password (min 6 chars)" />
+      <button class="auth-btn" onclick="signUp()">Create account</button>
+    </div>
+    <div id="auth-error" class="auth-error hidden"></div>
+  </div>
+</div>
+
+<!-- ── MAIN APP ── -->
+<div id="app" class="hidden">
+
+  <!-- MAP -->
+  <div id="map"></div>
+
+  <!-- TOP BAR -->
+  <div id="top-bar">
+    <button id="menu-btn" onclick="openDrawer()">
+      <span class="hamburger"></span><span class="hamburger"></span><span class="hamburger"></span>
+    </button>
+    <div id="top-title" onclick="openPlacelistPicker()">
+      <span id="top-list-name">Select a placelist</span>
+      <svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
+    </div>
+    <button id="add-pin-btn" onclick="startAddPin()">
+      <svg width="20" height="20" viewBox="0 0 20 20"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+
+  <!-- RATING LEGEND -->
+  <div id="legend">
+    <div class="legend-item"><span class="ldot" style="background:#2D6A4F"></span>Excellent</div>
+    <div class="legend-item"><span class="ldot" style="background:#52B788"></span>Good</div>
+    <div class="legend-item"><span class="ldot" style="background:#F9C74F"></span>Decent</div>
+    <div class="legend-item"><span class="ldot" style="background:#F4A261"></span>Forgettable</div>
+    <div class="legend-item"><span class="ldot" style="background:#E63946"></span>Bad</div>
+  </div>
+
+  <!-- PIN LIST SHEET -->
+  <div id="pin-sheet">
+    <div class="sheet-handle" onclick="toggleSheet()"></div>
+    <div class="sheet-header">
+      <span id="sheet-title">Pins</span>
+      <span id="sheet-count" class="sheet-count">0</span>
+    </div>
+    <div id="pin-list"></div>
+  </div>
+
+  <!-- DRAWER -->
+  <div id="drawer-overlay" class="hidden" onclick="closeDrawer()"></div>
+  <div id="drawer" class="drawer-closed">
+    <div class="drawer-header">
+      <div class="drawer-user">
+        <div class="drawer-avatar" id="drawer-avatar">A</div>
+        <div>
+          <div class="drawer-name" id="drawer-name">Loading...</div>
+          <div class="drawer-email" id="drawer-email"></div>
+        </div>
+      </div>
+    </div>
+    <div class="drawer-section-label">My Placelists</div>
+    <div id="drawer-lists"></div>
+    <button class="drawer-new-btn" onclick="openCreateList()">+ New placelist</button>
+    <div class="drawer-bottom">
+      <button class="drawer-signout" onclick="signOut()">Sign out</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── MODALS ── -->
+
+<!-- Create/Edit Placelist -->
+<div id="modal-list" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-title" id="modal-list-title">New placelist</div>
+    <label class="modal-label">Name</label>
+    <input class="modal-input" type="text" id="list-name-input" placeholder="e.g. Sydney Cafes" />
+    <label class="modal-label">Description (optional)</label>
+    <input class="modal-input" type="text" id="list-desc-input" placeholder="What's this list about?" />
+    <div class="modal-toggle-row">
+      <span class="modal-label" style="margin:0">Public</span>
+      <label class="toggle">
+        <input type="checkbox" id="list-public-toggle" />
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn-cancel" onclick="closeModal('modal-list')">Cancel</button>
+      <button class="modal-btn-primary" onclick="saveList()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit Pin -->
+<div id="modal-pin" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-title" id="modal-pin-title">Add a pin</div>
+    <label class="modal-label">Search for a place</label>
+    <div class="search-wrap">
+      <input class="modal-input" type="text" id="pin-search-input" placeholder="e.g. Reuben Hills, Surry Hills" oninput="searchPlaces(this.value)" autocomplete="off" />
+      <div id="search-results" class="search-results hidden"></div>
+    </div>
+    <label class="modal-label">Place name</label>
+    <input class="modal-input" type="text" id="pin-name-input" placeholder="Name" />
+    <label class="modal-label">Address</label>
+    <input class="modal-input" type="text" id="pin-addr-input" placeholder="Address" />
+    <label class="modal-label">Rating</label>
+    <div class="rating-row" id="rating-row">
+      <button class="rating-btn" data-r="5" onclick="setRating(5)">5 — Excellent</button>
+      <button class="rating-btn" data-r="4" onclick="setRating(4)">4 — Good</button>
+      <button class="rating-btn" data-r="3" onclick="setRating(3)">3 — Decent</button>
+      <button class="rating-btn" data-r="2" onclick="setRating(2)">2 — Forgettable</button>
+      <button class="rating-btn" data-r="1" onclick="setRating(1)">1 — Bad</button>
+    </div>
+    <label class="modal-label">Note (optional)</label>
+    <textarea class="modal-input modal-textarea" id="pin-note-input" placeholder="What made it special?" maxlength="280"></textarea>
+    <input type="hidden" id="pin-lat" />
+    <input type="hidden" id="pin-lng" />
+    <input type="hidden" id="pin-editing-id" />
+    <div class="modal-actions">
+      <button class="modal-btn-cancel" onclick="closeModal('modal-pin')">Cancel</button>
+      <button class="modal-btn-primary" onclick="savePin()">Save pin</button>
+    </div>
+  </div>
+</div>
+
+<!-- Pin Detail -->
+<div id="modal-detail" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="detail-rating-bar" id="detail-rating-bar"></div>
+    <div class="detail-name" id="detail-name"></div>
+    <div class="detail-addr" id="detail-addr"></div>
+    <div class="detail-note" id="detail-note"></div>
+    <div class="modal-actions">
+      <button class="modal-btn-cancel" onclick="closeModal('modal-detail')">Close</button>
+      <button class="modal-btn-edit" onclick="editCurrentPin()">Edit</button>
+      <button class="modal-btn-delete" onclick="deleteCurrentPin()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="toast hidden"></div>
+
+<!-- Add pin crosshair mode -->
+<div id="crosshair" class="hidden">
+  <div class="crosshair-icon">📍</div>
+  <div class="crosshair-hint">Tap the map to drop a pin</div>
+  <button class="crosshair-cancel" onclick="cancelAddPin()">Cancel</button>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
