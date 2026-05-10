@@ -353,12 +353,12 @@ async function savePin() {
     showToast('Pin updated');
   } else {
     const { error } = await sb.from('pins').insert(payload);
-    if (error) { showToast('Error saving pin'); return; }
-    // Update pin_count on placelist
+    if (error) { console.error('Pin insert error:', error); showToast('Error saving pin: ' + error.message); return; }
+    // Update pin_count on placelist (non-blocking)
     const list = placelists.find(l => l.id === activeListId);
     if (list) {
       list.pin_count = (list.pin_count || 0) + 1;
-      await sb.from('placelists').update({ pin_count: list.pin_count }).eq('id', activeListId);
+      sb.from('placelists').update({ pin_count: list.pin_count }).eq('id', activeListId).then(() => {});
     }
     showToast('Pin saved!');
   }
