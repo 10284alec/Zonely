@@ -178,8 +178,8 @@ function openCreateList(listId = null) {
   document.getElementById('list-name-input').value = list?.name || '';
   document.getElementById('list-desc-input').value = list?.description || '';
   document.getElementById('list-public-toggle').checked = list?.is_public || false;
+  document.getElementById('modal-list-delete').classList.toggle('hidden', !listId);
   openModal('modal-list');
-  closeDrawer();
 }
 
 async function saveList() {
@@ -252,12 +252,16 @@ function renderPinList() {
     const color = RATING_COLORS[pin.rating] || '#888';
     return `
       <div class="pin-row" onclick="flyToPin('${pin.id}')">
-        <div class="pin-dot" style="background:${color}">${pin.rating}</div>
+        ${pin.photo_url
+          ? `<div class="pin-thumb" style="background-image:url('${pin.photo_url}')"></div>`
+          : `<div class="pin-dot" style="background:${color}">${pin.rating}</div>`
+        }
         <div class="pin-row-info">
           <div class="pin-row-name">${escHtml(pin.name)}</div>
           <div class="pin-row-addr">${escHtml(pin.address || '')}</div>
           ${pin.note ? `<div class="pin-row-note">"${escHtml(pin.note)}"</div>` : ''}
         </div>
+        <div class="pin-dot-small" style="background:${color}">${pin.rating}</div>
         <span class="pin-row-arrow">›</span>
       </div>
     `;
@@ -318,17 +322,29 @@ async function savePin() {
   const lat = parseFloat(document.getElementById('pin-lat').value);
   const lng = parseFloat(document.getElementById('pin-lng').value);
   const eid = document.getElementById('pin-editing-id').value;
+  const photoFile = document.getElementById('pin-photo-input').files[0];
 
   if (!name) { showToast('Please enter a place name'); return; }
   if (!lat || !lng) { showToast('Please select a location on the map'); return; }
 
+  let photo_url = eid ? (pins.find(p => p.id === eid)?.photo_url || null) : null;
+
+  // Upload photo if selected
+  if (photoFile) {
+    showToast('Uploading photo...');
+    const ext = photoFile.name.split('.').pop();
+    const path = `pins/${user.id}/${Date.now()}.${ext}`;
+    const { error: upErr } = await sb.storage.from('pin-photos').upload(path, photoFile, { upsert: true });
+    if (!upErr) {
+      const { data: urlData } = sb.storage.from('pin-photos').getPublicUrl(path);
+      photo_url = urlData.publicUrl;
+    }
+  }
+
   const payload = {
-    placelist_id: activeListId,
-    user_id: user.id,
-    name, address, note,
-    rating: selectedRating,
-    latitude: lat,
-    longitude: lng
+    placelist_id: activeListId, user_id: user.id,
+    name, address, note, rating: selectedRating,
+    latitude: lat, longitude: lng, photo_url
   };
 
   if (eid) {
@@ -338,10 +354,18 @@ async function savePin() {
   } else {
     const { error } = await sb.from('pins').insert(payload);
     if (error) { showToast('Error saving pin'); return; }
+    // Update pin_count on placelist
+    const list = placelists.find(l => l.id === activeListId);
+    if (list) {
+      list.pin_count = (list.pin_count || 0) + 1;
+      await sb.from('placelists').update({ pin_count: list.pin_count }).eq('id', activeListId);
+    }
     showToast('Pin saved!');
   }
 
   closeModal('modal-pin');
+  document.getElementById('pin-photo-input').value = '';
+  document.getElementById('pin-photo-preview').classList.add('hidden');
   await loadPins(activeListId);
 }
 
@@ -353,10 +377,20 @@ function showPinDetail(pinId) {
   if (!pin) return;
   viewingPinId = pinId;
   const color = RATING_COLORS[pin.rating] || '#888';
+  const label = RATING_LABELS[pin.rating] || '';
   document.getElementById('detail-rating-bar').style.background = color;
+  document.getElementById('detail-rating-label').textContent = `${pin.rating}/5 — ${label}`;
+  document.getElementById('detail-rating-label').style.color = color;
   document.getElementById('detail-name').textContent = pin.name;
   document.getElementById('detail-addr').textContent = pin.address || '';
   document.getElementById('detail-note').textContent = pin.note ? `"${pin.note}"` : 'No note added.';
+  const photo = document.getElementById('detail-photo');
+  if (pin.photo_url) {
+    photo.style.backgroundImage = `url('${pin.photo_url}')`;
+    photo.classList.remove('hidden');
+  } else {
+    photo.classList.add('hidden');
+  }
   openModal('modal-detail');
 }
 
@@ -694,17 +728,48 @@ function renderMyMapsScreen() {
     return;
   }
   container.innerHTML = placelists.map(l => `
-    <div class="mymaps-card" onclick="openListFromMyMaps('${l.id}')">
-      <div class="mymaps-card-icon">🗺️</div>
-      <div class="mymaps-card-info">
+    <div class="mymaps-card">
+      <div class="mymaps-card-icon" onclick="openListFromMyMaps('${l.id}')">🗺️</div>
+      <div class="mymaps-card-info" onclick="openListFromMyMaps('${l.id}')">
         <div class="mymaps-card-name">${escHtml(l.name)}</div>
         <div class="mymaps-card-meta">
           <span class="${l.is_public ? 'mymaps-card-public' : 'mymaps-card-private'}">${l.is_public ? 'Public' : 'Private'}</span>
+          ${l.pin_count ? `<span class="mymaps-card-pins">· ${l.pin_count} pin${l.pin_count !== 1 ? 's' : ''}</span>` : ''}
+          ${l.description ? `<span class="mymaps-card-desc">${escHtml(l.description)}</span>` : ''}
         </div>
       </div>
-      <span class="mymaps-card-arrow">›</span>
+      <button class="mymaps-card-menu" onclick="openListMenu('${l.id}', event)">•••</button>
     </div>
   `).join('');
+}
+
+function openListMenu(id, e) {
+  e.stopPropagation();
+  const list = placelists.find(l => l.id === id);
+  if (!list) return;
+  editingListId = id;
+  document.getElementById('modal-list-title').textContent = 'Edit placelist';
+  document.getElementById('list-name-input').value = list.name;
+  document.getElementById('list-desc-input').value = list.description || '';
+  document.getElementById('list-public-toggle').checked = list.is_public || false;
+  // Show delete button
+  document.getElementById('modal-list-delete').classList.remove('hidden');
+  openModal('modal-list');
+}
+
+async function deleteList() {
+  if (!confirm('Delete this placelist and all its pins?')) return;
+  const { error } = await sb.from('placelists').delete().eq('id', editingListId).eq('user_id', user.id);
+  if (error) { showToast('Error deleting'); return; }
+  closeModal('modal-list');
+  showToast('Placelist deleted');
+  activeListId = null;
+  showMapElements(false);
+  await loadLists();
+  if (!placelists.length) {
+    document.getElementById('screen-mymaps').classList.remove('hidden');
+    renderMyMapsScreen();
+  }
 }
 
 async function openListFromMyMaps(id) {
@@ -720,4 +785,22 @@ function updateProfileScreen() {
   document.getElementById('profile-avatar').textContent = document.getElementById('drawer-avatar')?.textContent || 'A';
   document.getElementById('profile-name').textContent = document.getElementById('drawer-name')?.textContent || '';
   document.getElementById('profile-email').textContent = user?.email || '';
+}
+
+// ── PHOTO HELPERS ──
+function previewPhoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('pin-photo-img').src = e.target.result;
+    document.getElementById('pin-photo-preview').classList.remove('hidden');
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearPhoto() {
+  document.getElementById('pin-photo-input').value = '';
+  document.getElementById('pin-photo-preview').classList.add('hidden');
+  document.getElementById('pin-photo-img').src = '';
 }
