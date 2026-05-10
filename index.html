@@ -65,6 +65,18 @@
     </button>
   </div>
 
+  <!-- SEARCH BAR -->
+  <div id="search-bar-wrap">
+    <div id="search-bar">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.5"/>
+        <path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <input type="text" id="main-search-input" placeholder="Search and add a place..." oninput="mainSearch(this.value)" autocomplete="off" />
+    </div>
+    <div id="search-bar-results" class="hidden"></div>
+  </div>
+
   <!-- RATING LEGEND -->
   <div id="legend">
     <div class="legend-item"><span class="ldot" style="background:#2D6A4F"></span>Excellent</div>

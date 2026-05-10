@@ -53,7 +53,7 @@ function initMap() {
   map = L.map('map', { zoomControl: false, attributionControl: false })
     .setView([-33.868, 151.209], 13);
 
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
     maxZoom: 19,
     subdomains: 'abcd'
   }).addTo(map);
@@ -382,7 +382,64 @@ async function deleteCurrentPin() {
   await loadPins(activeListId);
 }
 
-// ── SEARCH ──
+// ── MAIN SEARCH BAR ──
+function mainSearch(query) {
+  clearTimeout(searchTimeout);
+  const results = document.getElementById('search-bar-results');
+  if (!query || query.length < 2) { results.classList.add('hidden'); return; }
+
+  searchTimeout = setTimeout(async () => {
+    if (!activeListId) {
+      results.innerHTML = `<div class="sb-result"><div class="sb-result-name" style="color:#666">Select a placelist first</div></div>`;
+      results.classList.remove('hidden'); return;
+    }
+    try {
+      const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(query)}&key=${MAPS_KEY}&language=en`;
+      const res = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`);
+      const data = await res.json();
+      if (!data.predictions?.length) { results.classList.add('hidden'); return; }
+      results.innerHTML = data.predictions.slice(0, 6).map(p => `
+        <div class="sb-result" onclick="mainSearchSelect('${p.place_id}', '${escHtml(p.description).replace(/'/g,"\\'")}')">
+          <div class="sb-result-icon">📍</div>
+          <div>
+            <div class="sb-result-name">${escHtml(p.structured_formatting?.main_text || p.description)}</div>
+            <div class="sb-result-addr">${escHtml(p.structured_formatting?.secondary_text || '')}</div>
+          </div>
+        </div>
+      `).join('');
+      results.classList.remove('hidden');
+    } catch { results.classList.add('hidden'); }
+  }, 350);
+}
+
+async function mainSearchSelect(placeId, description) {
+  document.getElementById('search-bar-results').classList.add('hidden');
+  document.getElementById('main-search-input').value = '';
+  try {
+    const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=name,formatted_address,geometry&key=${MAPS_KEY}`;
+    const res = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`);
+    const data = await res.json();
+    const r = data.result;
+    if (r) {
+      document.getElementById('pin-name-input').value = r.name || '';
+      document.getElementById('pin-addr-input').value = r.formatted_address || '';
+      document.getElementById('pin-lat').value = r.geometry.location.lat;
+      document.getElementById('pin-lng').value = r.geometry.location.lng;
+      map.setView([r.geometry.location.lat, r.geometry.location.lng], 16);
+    }
+  } catch {
+    const parts = description.split(',');
+    document.getElementById('pin-name-input').value = parts[0]?.trim() || description;
+    document.getElementById('pin-addr-input').value = description;
+  }
+  document.getElementById('pin-editing-id').value = '';
+  document.getElementById('pin-note-input').value = '';
+  document.getElementById('pin-search-input').value = '';
+  setRating(5);
+  openModal('modal-pin');
+}
+
+// ── SEARCH (in-modal) ──
 function searchPlaces(query) {
   clearTimeout(searchTimeout);
   const results = document.getElementById('search-results');
