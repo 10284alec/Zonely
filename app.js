@@ -691,6 +691,7 @@ function showMapElements(show) {
     if (!el) return;
     el.style.display = show ? '' : 'none';
   });
+  if (show && map) setTimeout(() => map.invalidateSize(), 150);
 }
 
 function switchTab(tab) {
@@ -770,11 +771,17 @@ async function deleteList() {
 
 async function openListFromMyMaps(id) {
   await selectList(id);
+  // Hide all tab screens
   document.querySelectorAll('.tab-screen').forEach(s => s.classList.add('hidden'));
+  // Show map elements
   showMapElements(true);
+  // Force display block on map specifically (it gets set to none)
+  document.getElementById('map').style.display = '';
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('nav-mymaps').classList.add('active');
   activeTab = 'mymaps';
+  // Refresh map size after showing it
+  setTimeout(() => { if (map) map.invalidateSize(); }, 100);
 }
 
 function updateProfileScreen() {
