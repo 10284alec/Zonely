@@ -130,15 +130,10 @@ async function loadLists() {
   const { data, error } = await sb.from('placelists').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
   if (error) { showToast('Error loading lists'); return; }
   placelists = data || [];
-
-  if (placelists.length > 0) {
-    await selectList(placelists[0].id);
-    showMapElements(true);
-  } else {
-    // show my maps screen with empty state
-    document.getElementById('screen-mymaps').classList.remove('hidden');
-    renderMyMapsScreen();
-  }
+  // Always start on My Maps screen — user picks which list to open
+  showMapElements(false);
+  document.getElementById('screen-mymaps').classList.remove('hidden');
+  renderMyMapsScreen();
 }
 
 function renderDrawerLists() {
@@ -200,7 +195,15 @@ async function saveList() {
   }
 
   closeModal('modal-list');
-  await loadLists();
+  // Reload lists from DB
+  const { data } = await sb.from('placelists').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
+  placelists = data || [];
+  // If we're on the map, stay there; otherwise refresh My Maps screen
+  if (activeTab === 'mymaps' && !activeListId) {
+    renderMyMapsScreen();
+  } else {
+    renderMyMapsScreen();
+  }
 }
 
 // ── PINS ──
@@ -704,6 +707,8 @@ function switchTab(tab) {
     showMapElements(false);
     document.getElementById('screen-mymaps').classList.remove('hidden');
     renderMyMapsScreen();
+    // Re-render in case new lists were added
+
   } else {
     showMapElements(false);
     const screen = document.getElementById(`screen-${tab}`);
@@ -770,18 +775,15 @@ async function deleteList() {
 }
 
 async function openListFromMyMaps(id) {
-  await selectList(id);
-  // Hide all tab screens
+  // First hide all tab screens
   document.querySelectorAll('.tab-screen').forEach(s => s.classList.add('hidden'));
-  // Show map elements
+  // Show map elements before loading so map renders correctly
   showMapElements(true);
-  // Force display block on map specifically (it gets set to none)
-  document.getElementById('map').style.display = '';
+  // Now load the list data
+  await selectList(id);
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('nav-mymaps').classList.add('active');
   activeTab = 'mymaps';
-  // Refresh map size after showing it
-  setTimeout(() => { if (map) map.invalidateSize(); }, 100);
 }
 
 function updateProfileScreen() {
