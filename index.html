@@ -53,10 +53,7 @@
 
   <!-- TOP BAR -->
   <div id="top-bar">
-    <button id="menu-btn" onclick="openDrawer()">
-      <span class="hamburger"></span><span class="hamburger"></span><span class="hamburger"></span>
-    </button>
-    <div id="top-title" onclick="openPlacelistPicker()">
+    <div id="top-title" onclick="switchTab('mymaps')">
       <span id="top-list-name">Select a placelist</span>
       <svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
     </div>
@@ -120,24 +117,74 @@
     <div id="pin-list"></div>
   </div>
 
-  <!-- DRAWER -->
-  <div id="drawer-overlay" class="hidden" onclick="closeDrawer()"></div>
-  <div id="drawer" class="drawer-closed">
-    <div class="drawer-header">
-      <div class="drawer-user">
-        <div class="drawer-avatar" id="drawer-avatar">A</div>
-        <div>
-          <div class="drawer-name" id="drawer-name">Loading...</div>
-          <div class="drawer-email" id="drawer-email"></div>
-        </div>
-      </div>
+  <!-- BOTTOM NAV -->
+  <nav id="bottom-nav">
+    <button class="nav-btn" id="nav-nearyou" onclick="switchTab('nearyou')">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="3" stroke="currentColor" stroke-width="1.8"/><path d="M11 2v2M11 18v2M2 11h2M18 11h2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M4.9 4.9l1.4 1.4M15.7 15.7l1.4 1.4M4.9 17.1l1.4-1.4M15.7 6.3l1.4-1.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <span>Near You</span>
+    </button>
+    <button class="nav-btn" id="nav-search" onclick="switchTab('search')">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="9.5" cy="9.5" r="6.5" stroke="currentColor" stroke-width="1.8"/><path d="M14.5 14.5L20 20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <span>Search</span>
+    </button>
+    <button class="nav-btn active" id="nav-mymaps" onclick="switchTab('mymaps')">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M3 5l6-2 4 2 6-2v14l-6 2-4-2-6 2V5z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 3v14M13 5v14" stroke="currentColor" stroke-width="1.5"/></svg>
+      <span>My Maps</span>
+    </button>
+    <button class="nav-btn" id="nav-profile" onclick="switchTab('profile')">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="8" r="4" stroke="currentColor" stroke-width="1.8"/><path d="M3 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <span>Profile</span>
+    </button>
+  </nav>
+
+  <!-- MY MAPS SCREEN -->
+  <div id="screen-mymaps" class="tab-screen hidden">
+    <div class="tab-screen-header">
+      <div class="tab-screen-title">My Maps</div>
+      <button class="tab-screen-action" onclick="openCreateList()">+ New</button>
     </div>
-    <div class="drawer-section-label">My Placelists</div>
-    <div id="drawer-lists"></div>
-    <button class="drawer-new-btn" onclick="openCreateList()">+ New placelist</button>
-    <div class="drawer-bottom">
-      <button class="drawer-signout" onclick="signOut()">Sign out</button>
+    <div id="mymaps-list"></div>
+  </div>
+
+  <!-- NEAR YOU SCREEN -->
+  <div id="screen-nearyou" class="tab-screen hidden">
+    <div class="tab-screen-header">
+      <div class="tab-screen-title">Near You</div>
     </div>
+    <div class="coming-soon">
+      <div class="coming-soon-icon">📍</div>
+      <div class="coming-soon-title">Coming soon</div>
+      <div class="coming-soon-sub">Public maps near your location will appear here.</div>
+    </div>
+  </div>
+
+  <!-- SEARCH SCREEN -->
+  <div id="screen-search" class="tab-screen hidden">
+    <div class="tab-screen-header">
+      <div class="tab-screen-title">Search</div>
+    </div>
+    <div class="coming-soon">
+      <div class="coming-soon-icon">🔍</div>
+      <div class="coming-soon-title">Coming soon</div>
+      <div class="coming-soon-sub">Search public maps and other users here.</div>
+    </div>
+  </div>
+
+  <!-- PROFILE SCREEN -->
+  <div id="screen-profile" class="tab-screen hidden">
+    <div class="tab-screen-header">
+      <div class="tab-screen-title">Profile</div>
+    </div>
+    <div class="profile-card">
+      <div class="profile-avatar" id="profile-avatar">A</div>
+      <div class="profile-name" id="profile-name">Loading...</div>
+      <div class="profile-email" id="profile-email"></div>
+    </div>
+    <div class="profile-section-label">Account</div>
+    <button class="profile-row" onclick="signOut()">
+      <span>Sign out</span>
+      <span class="profile-row-arrow">›</span>
+    </button>
   </div>
 
 </div>

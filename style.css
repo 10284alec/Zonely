@@ -464,3 +464,123 @@ html, body {
 /* Adjust search bar position when header visible */
 #search-bar-wrap { top: calc(var(--safe-top) + 72px); }
 #search-bar-wrap.with-header { top: calc(var(--safe-top) + 158px); }
+
+/* BOTTOM NAV */
+#bottom-nav {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  height: calc(56px + var(--safe-bottom));
+  background: var(--surface);
+  border-top: 1px solid var(--border2);
+  box-shadow: 0 -2px 12px rgba(0,0,0,0.07);
+  display: flex; align-items: flex-start;
+  padding-top: 4px;
+  z-index: 200;
+}
+.nav-btn {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 3px;
+  padding: 4px 0;
+  background: none; border: none; cursor: pointer;
+  color: var(--text3); transition: color 0.15s;
+  font-family: inherit;
+}
+.nav-btn span { font-size: 10px; font-weight: 500; }
+.nav-btn.active { color: var(--green-5); }
+.nav-btn svg { transition: transform 0.15s; }
+.nav-btn.active svg { transform: scale(1.1); }
+
+/* TAB SCREENS */
+.tab-screen {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  bottom: calc(56px + var(--safe-bottom));
+  background: var(--bg);
+  z-index: 150;
+  overflow-y: auto;
+  padding-top: calc(var(--safe-top) + 0px);
+}
+.tab-screen-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: calc(var(--safe-top) + 16px) 16px 12px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border2);
+  position: sticky; top: 0; z-index: 10;
+}
+.tab-screen-title { font-size: 22px; font-weight: 700; color: var(--text); }
+.tab-screen-action {
+  font-size: 15px; font-weight: 600; color: var(--green-5);
+  background: none; border: none; cursor: pointer; padding: 4px 0;
+  font-family: inherit;
+}
+
+/* MY MAPS SCREEN */
+#mymaps-list { padding: 12px; }
+.mymaps-card {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border2);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  margin-bottom: 10px;
+  cursor: pointer; transition: background 0.1s;
+}
+.mymaps-card:active { background: var(--surface2); }
+.mymaps-card-icon {
+  width: 44px; height: 44px; border-radius: 10px;
+  background: var(--green-5);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; font-size: 20px;
+}
+.mymaps-card-info { flex: 1; min-width: 0; }
+.mymaps-card-name { font-size: 15px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mymaps-card-meta { font-size: 12px; color: var(--text2); margin-top: 3px; display: flex; gap: 8px; align-items: center; }
+.mymaps-card-public { font-size: 10px; color: var(--green-5); padding: 1px 6px; border-radius: 10px; border: 1px solid var(--green-5); }
+.mymaps-card-private { font-size: 10px; color: var(--text3); padding: 1px 6px; border-radius: 10px; border: 1px solid var(--border); }
+.mymaps-card-arrow { color: var(--text3); font-size: 20px; flex-shrink: 0; }
+.mymaps-empty { text-align: center; padding: 48px 24px; color: var(--text2); font-size: 15px; line-height: 1.6; }
+.mymaps-empty-icon { font-size: 40px; margin-bottom: 12px; }
+
+/* COMING SOON */
+.coming-soon {
+  text-align: center; padding: 80px 32px;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+}
+.coming-soon-icon { font-size: 48px; }
+.coming-soon-title { font-size: 18px; font-weight: 700; color: var(--text); }
+.coming-soon-sub { font-size: 14px; color: var(--text2); line-height: 1.6; max-width: 260px; }
+
+/* PROFILE SCREEN */
+.profile-card {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 32px 24px 24px; background: var(--surface);
+  border-bottom: 1px solid var(--border2);
+}
+.profile-avatar {
+  width: 72px; height: 72px; border-radius: 50%;
+  background: var(--green-5);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px; font-weight: 700; color: #fff;
+  margin-bottom: 12px;
+}
+.profile-name { font-size: 20px; font-weight: 700; color: var(--text); }
+.profile-email { font-size: 13px; color: var(--text2); margin-top: 4px; }
+.profile-section-label {
+  font-size: 11px; font-weight: 600; color: var(--text3);
+  text-transform: uppercase; letter-spacing: 0.8px;
+  padding: 16px 16px 6px;
+}
+.profile-row {
+  width: 100%; display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px; background: var(--surface);
+  border: none; border-top: 1px solid var(--border2);
+  font-size: 15px; color: var(--text); cursor: pointer;
+  font-family: inherit; text-align: left;
+  transition: background 0.1s;
+}
+.profile-row:active { background: var(--surface2); }
+.profile-row-arrow { color: var(--text3); font-size: 18px; }
+
+/* Adjust map screen bottom padding for nav */
+#pin-sheet { bottom: calc(56px + var(--safe-bottom)); }
+#bottom-nav { padding-bottom: var(--safe-bottom); }

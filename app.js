@@ -130,12 +130,18 @@ async function loadLists() {
   const { data, error } = await sb.from('placelists').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
   if (error) { showToast('Error loading lists'); return; }
   placelists = data || [];
-  renderDrawerLists();
 
   if (placelists.length > 0) {
-    selectList(placelists[0].id);
+    await selectList(placelists[0].id);
+    // show map immediately
+    MAP_TAB_ELEMENTS.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.visibility = 'visible';
+    });
   } else {
-    document.getElementById('top-list-name').textContent = 'Create a placelist';
+    // show my maps screen with empty state
+    document.getElementById('screen-mymaps').classList.remove('hidden');
+    renderMyMapsScreen();
   }
 }
 
@@ -633,4 +639,91 @@ function renderListView() {
 function lvTapPin(pinId) {
   setView('map');
   setTimeout(() => flyToPin(pinId), 100);
+}
+
+// ── BOTTOM NAV ──
+let activeTab = 'mymaps';
+const MAP_TAB_ELEMENTS = ['map','top-bar','search-bar-wrap','placelist-header','view-controls','list-view-screen','pin-sheet','crosshair'];
+
+function switchTab(tab) {
+  activeTab = tab;
+  // Update nav buttons
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`nav-${tab}`)?.classList.add('active');
+
+  // Hide all tab screens
+  document.querySelectorAll('.tab-screen').forEach(s => s.classList.add('hidden'));
+
+  // Hide/show map elements
+  const isMap = tab === 'mymaps' && activeListId;
+  MAP_TAB_ELEMENTS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.visibility = (tab === 'mymaps' && activeListId) ? 'visible' : 'hidden';
+  });
+
+  if (tab === 'mymaps') {
+    if (activeListId) {
+      // Show map view
+      MAP_TAB_ELEMENTS.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.visibility = 'visible';
+      });
+    } else {
+      // Show my maps list
+      document.getElementById('screen-mymaps').classList.remove('hidden');
+      renderMyMapsScreen();
+    }
+  } else {
+    MAP_TAB_ELEMENTS.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.visibility = 'hidden';
+    });
+    const screen = document.getElementById(`screen-${tab}`);
+    if (screen) screen.classList.remove('hidden');
+    if (tab === 'profile') updateProfileScreen();
+  }
+}
+
+function renderMyMapsScreen() {
+  const container = document.getElementById('mymaps-list');
+  if (!placelists.length) {
+    container.innerHTML = `
+      <div class="mymaps-empty">
+        <div class="mymaps-empty-icon">🗺️</div>
+        <div>No placelists yet.</div>
+        <div style="font-size:13px;margin-top:6px">Tap <strong>+ New</strong> above to create your first map.</div>
+      </div>`;
+    return;
+  }
+  container.innerHTML = placelists.map(l => `
+    <div class="mymaps-card" onclick="openListFromMyMaps('${l.id}')">
+      <div class="mymaps-card-icon">🗺️</div>
+      <div class="mymaps-card-info">
+        <div class="mymaps-card-name">${escHtml(l.name)}</div>
+        <div class="mymaps-card-meta">
+          <span class="${l.is_public ? 'mymaps-card-public' : 'mymaps-card-private'}">${l.is_public ? 'Public' : 'Private'}</span>
+        </div>
+      </div>
+      <span class="mymaps-card-arrow">›</span>
+    </div>
+  `).join('');
+}
+
+async function openListFromMyMaps(id) {
+  await selectList(id);
+  // Switch to map view
+  document.getElementById('screen-mymaps').classList.add('hidden');
+  MAP_TAB_ELEMENTS.forEach(eid => {
+    const el = document.getElementById(eid);
+    if (el) el.style.visibility = 'visible';
+  });
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('nav-mymaps').classList.add('active');
+  activeTab = 'mymaps';
+}
+
+function updateProfileScreen() {
+  document.getElementById('profile-avatar').textContent = document.getElementById('drawer-avatar')?.textContent || 'A';
+  document.getElementById('profile-name').textContent = document.getElementById('drawer-name')?.textContent || '';
+  document.getElementById('profile-email').textContent = user?.email || '';
 }
