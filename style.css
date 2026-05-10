@@ -349,3 +349,118 @@ html, body {
   border: none; border-radius: 20px; padding: 8px 20px;
   font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 4px;
 }
+
+/* PLACELIST HEADER */
+#placelist-header {
+  position: fixed;
+  top: calc(var(--safe-top) + 72px);
+  left: 12px; right: 12px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border2);
+  box-shadow: var(--shadow);
+  padding: 12px 14px 10px;
+  z-index: 99;
+}
+#plh-name {
+  font-size: 17px; font-weight: 700; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#plh-desc {
+  font-size: 12px; color: var(--text2); margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#plh-meta {
+  display: flex; align-items: center; gap: 8px; margin-top: 6px;
+}
+#plh-author { font-size: 11px; color: var(--text2); }
+.plh-public { font-size: 10px; color: var(--green-5); padding: 1px 7px; border-radius: 10px; border: 1px solid var(--green-5); font-weight: 500; }
+.plh-private { font-size: 10px; color: var(--text3); padding: 1px 7px; border-radius: 10px; border: 1px solid var(--border); font-weight: 500; }
+
+/* VIEW CONTROLS */
+#view-controls {
+  position: fixed;
+  top: calc(var(--safe-top) + 158px);
+  left: 12px; right: 12px;
+  display: flex; align-items: center; justify-content: space-between;
+  z-index: 99;
+  pointer-events: none;
+}
+#view-toggle {
+  display: flex;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  pointer-events: all;
+}
+.view-btn {
+  display: flex; align-items: center; gap: 5px;
+  padding: 7px 12px; border: none; background: transparent;
+  font-size: 12px; font-weight: 500; color: var(--text2);
+  cursor: pointer; transition: all 0.15s; font-family: inherit;
+}
+.view-btn.active { background: var(--green-5); color: #fff; }
+.view-btn:not(.active):active { background: var(--surface2); }
+
+#legend {
+  position: static;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  padding: 6px 10px;
+  display: flex; flex-direction: column; gap: 4px;
+  pointer-events: all;
+}
+
+/* LIST VIEW SCREEN */
+#list-view-screen {
+  position: fixed;
+  top: calc(var(--safe-top) + 62px);
+  left: 0; right: 0;
+  bottom: 0;
+  background: var(--bg);
+  z-index: 98;
+  overflow-y: auto;
+  padding: 8px 12px 20px;
+}
+#list-view-content { padding-bottom: var(--safe-bottom); }
+
+.lv-rating-group { margin-bottom: 8px; }
+.lv-group-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 4px 6px;
+}
+.lv-group-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.lv-group-label { font-size: 13px; font-weight: 700; color: var(--text); }
+.lv-group-count { font-size: 12px; color: var(--text2); }
+.lv-group-line { flex: 1; height: 1px; background: var(--border2); }
+
+.lv-pin-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px;
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  margin-bottom: 6px;
+  cursor: pointer;
+  border: 1px solid var(--border2);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  transition: background 0.1s;
+}
+.lv-pin-row:active { background: var(--surface2); }
+.lv-pin-num {
+  width: 24px; height: 24px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: #fff; flex-shrink: 0;
+}
+.lv-pin-info { flex: 1; min-width: 0; }
+.lv-pin-name { font-size: 14px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lv-pin-note { font-size: 12px; color: var(--text2); margin-top: 2px; font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lv-pin-addr { font-size: 11px; color: var(--text3); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lv-pin-arrow { color: var(--text3); font-size: 18px; flex-shrink: 0; }
+
+/* Adjust search bar position when header visible */
+#search-bar-wrap { top: calc(var(--safe-top) + 72px); }
+#search-bar-wrap.with-header { top: calc(var(--safe-top) + 158px); }

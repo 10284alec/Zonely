@@ -160,6 +160,8 @@ async function selectList(id) {
   if (!list) return;
   document.getElementById('top-list-name').textContent = list.name;
   renderDrawerLists();
+  updatePlacelistHeader(list);
+  setView('map');
   await loadPins(id);
 }
 
@@ -553,4 +555,82 @@ function showToast(msg) {
 function escHtml(str) {
   if (!str) return '';
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ── PLACELIST HEADER ──
+function updatePlacelistHeader(list) {
+  if (!list) {
+    document.getElementById('placelist-header').classList.add('hidden');
+    document.getElementById('search-bar-wrap').classList.remove('with-header');
+    document.getElementById('view-controls').style.top = `calc(var(--safe-top) + 128px)`;
+    return;
+  }
+  document.getElementById('plh-name').textContent = list.name;
+  document.getElementById('plh-desc').textContent = list.description || '';
+  document.getElementById('plh-author').textContent = document.getElementById('drawer-name').textContent;
+  const badge = document.getElementById('plh-badge');
+  badge.textContent = list.is_public ? 'Public' : 'Private';
+  badge.className = list.is_public ? 'plh-public' : 'plh-private';
+  document.getElementById('placelist-header').classList.remove('hidden');
+  document.getElementById('search-bar-wrap').classList.add('with-header');
+}
+
+// ── VIEW TOGGLE ──
+let currentView = 'map';
+
+function setView(view) {
+  currentView = view;
+  document.getElementById('btn-map-view').classList.toggle('active', view === 'map');
+  document.getElementById('btn-list-view').classList.toggle('active', view === 'list');
+  document.getElementById('list-view-screen').classList.toggle('hidden', view !== 'list');
+  document.getElementById('pin-sheet').style.display = view === 'list' ? 'none' : '';
+  document.getElementById('search-bar-wrap').style.display = view === 'list' ? 'none' : '';
+  if (view === 'list') renderListView();
+}
+
+function renderListView() {
+  const container = document.getElementById('list-view-content');
+  if (!pins.length) {
+    container.innerHTML = '<div class="empty-state" style="padding-top:40px">No pins yet.<br>Switch to Map view and tap + to add your first place.</div>';
+    return;
+  }
+
+  const sorted = [...pins].sort((a, b) => b.rating - a.rating);
+  const groups = [5, 4, 3, 2, 1];
+  let html = '';
+  let rankCounter = 1;
+
+  groups.forEach(r => {
+    const group = sorted.filter(p => p.rating === r);
+    if (!group.length) return;
+    const color = RATING_COLORS[r];
+    const label = RATING_LABELS[r];
+    html += `
+      <div class="lv-rating-group">
+        <div class="lv-group-header">
+          <div class="lv-group-dot" style="background:${color}"></div>
+          <div class="lv-group-label">${label}</div>
+          <div class="lv-group-count">${group.length} place${group.length !== 1 ? 's' : ''}</div>
+          <div class="lv-group-line"></div>
+        </div>
+        ${group.map(pin => `
+          <div class="lv-pin-row" onclick="lvTapPin('${pin.id}')">
+            <div class="lv-pin-num" style="background:${color}">${rankCounter++}</div>
+            <div class="lv-pin-info">
+              <div class="lv-pin-name">${escHtml(pin.name)}</div>
+              ${pin.note ? `<div class="lv-pin-note">"${escHtml(pin.note)}"</div>` : ''}
+              ${pin.address ? `<div class="lv-pin-addr">${escHtml(pin.address)}</div>` : ''}
+            </div>
+            <span class="lv-pin-arrow">›</span>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  });
+  container.innerHTML = html;
+}
+
+function lvTapPin(pinId) {
+  setView('map');
+  setTimeout(() => flyToPin(pinId), 100);
 }
